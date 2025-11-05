@@ -3,9 +3,9 @@ name: Build and Push Docker Image
 
 # Pemicu (Trigger)
 on:
-  # 1. Menjalankan workflow setiap kali ada 'push' ke branch 'main'
+  # 1. Menjalankan workflow setiap kali ada 'push' ke branch 'master'
   push:
-    branches: [ master ]
+    branches: [ "master" ] # Pastikan ini "master"
   
   # 2. Memungkinkan Anda menjalankan workflow ini secara manual dari tab Actions
   workflow_dispatch:
