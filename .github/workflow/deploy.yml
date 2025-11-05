@@ -1,0 +1,64 @@
+# Name for the workflow
+name: Deploy Static Website to GitHub Pages
+
+# This controls WHEN the action runs
+on:
+  # Triggers the workflow on push events but only for the "master" branch
+  push:
+    branches: ["master"]
+
+# These permissions are required for the deploy-pages action
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# A workflow run is made up of one or more jobs
+jobs:
+  # This single job is named "deploy"
+  deploy:
+    # Set up the environment (required for GitHub Pages)
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    # Use the latest version of Ubuntu to run the job
+    runs-on: ubuntu-latest
+    
+    # These are the steps the job will run
+    steps:
+      # Step 1: Check out ONLY the files we need, avoiding all other files/folders
+      - name: Check out website files
+        uses: actions/checkout@v4
+        with:
+          # Enable sparse checkout
+          sparse-checkout: |
+            app.js
+            index.html
+            style.css
+          # Disable LFS
+          lfs: false
+
+      # Step 2: List files (for debugging, to confirm only 3 files are present)
+      - name: List checked-out files
+        run: ls -la
+
+      # Step 3: Configures the GitHub Pages feature
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      
+      # Step 4: Upload the clean root directory as the artifact
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # Name of the artifact to be deployed
+          name: github-pages
+          # Upload everything in the root (which is ONLY our 3 files)
+          path: .
+          # We only need this artifact for 1 day
+          retention-days: 1
+
+      # Step 5: Deploys the uploaded artifact to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
