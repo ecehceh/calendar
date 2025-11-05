@@ -5,7 +5,7 @@ name: Build and Push Docker Image
 on:
   # 1. Menjalankan workflow setiap kali ada 'push' ke branch 'main'
   push:
-    branches: [ "master" ]
+    branches: [ master]
   
   # 2. Memungkinkan Anda menjalankan workflow ini secara manual dari tab Actions
   workflow_dispatch:
