@@ -1,0 +1,47 @@
+# Nama workflow yang akan tampil di tab "Actions" GitHub
+name: Build and Push Docker Image
+
+# Pemicu (Trigger)
+on:
+  # 1. Menjalankan workflow setiap kali ada 'push' ke branch 'main'
+  push:
+    branches: [ "main" ]
+  
+  # 2. Memungkinkan Anda menjalankan workflow ini secara manual dari tab Actions
+  workflow_dispatch:
+
+# Izin yang diperlukan untuk workflow
+permissions:
+  contents: read      # Izin untuk checkout/membaca kode
+  packages: write     # Izin untuk mem-publish image ke GitHub Packages/GHCR
+
+# Daftar 'jobs' (pekerjaan) yang akan dijalankan
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest # Menggunakan server Ubuntu terbaru
+
+    steps:
+      # Langkah 1: Mengunduh kode dari repository Anda
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Langkah 2: Login ke GitHub Container Registry (GHCR)
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          # 'github.actor' adalah username Anda
+          # GITHUB_TOKEN adalah rahasia yang otomatis dibuat GitHub
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Langkah 3: Build dan push Docker image
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .       # Menggunakan Dockerfile di root ('.')
+          push: true       # 'true' berarti kita ingin mem-push setelah build
+          # Membuat tag untuk image.
+          # Ini akan membuat tag seperti:
+          # ghcr.io/NAMA_ANDA/NAMA_REPO:latest
+          tags: ghcr.io/${{ github.repository }}:latest
