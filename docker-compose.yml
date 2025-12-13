@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  # Service aplikasi kalender simulasi OS kita
+  calendar-os-backend:
+    build: ./os-service
+    ports:
+      - "3000:3000"
+    cpus: 1.5           # Batasi CPU untuk melihat efek bottleneck di Version A
+    mem_limit: 512m
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3001:3000" # Mapping ke port 3001 agar tidak bentrok jika port 3000 dipakai
