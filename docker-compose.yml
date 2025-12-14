@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # Service aplikasi kalender simulasi OS kita
   calendar-os-backend:
     build: ./os-service
     ports:
