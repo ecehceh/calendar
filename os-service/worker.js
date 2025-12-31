@@ -4,7 +4,7 @@ const { parentPort, workerData } = require('worker_threads');
 function heavyCalculation() {
     let count = 0;
     // Loop besar untuk membebani CPU Core
-    for (let i = 0; i < 2e9; i++) { 
+    for (let i = 0; i < 1e8; i++) { 
         count += i;
     }
     return count;

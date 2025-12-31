@@ -1,8 +1,8 @@
 const http = require('http');
 
 // Ganti endpoint sesuai kebutuhan eksperimen:
-// const ENDPOINT = '/api/v1/analyze-sync';  // <-- Uji Coba 1: Pakai ini dulu (Versi A)
-const ENDPOINT = '/api/v1/analyze-async'; // <-- Uji Coba 2: Ganti ke ini nanti (Versi B)
+const ENDPOINT = '/api/v1/analyze-sync';  // <-- Uji Coba 1: Pakai ini dulu (Versi A)
+// const ENDPOINT = '/api/v1/analyze-async'; // <-- Uji Coba 2: Ganti ke ini nanti (Versi B)
 
 const TOTAL_REQUESTS = 50; // Jumlah request 'serangan'
 

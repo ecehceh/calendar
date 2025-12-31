@@ -26,7 +26,7 @@ app.get('/api/v1/analyze-sync', (req, res) => {
     
     // CPU Bound task dilakukan langsung di Main Thread (Event Loop)
     let count = 0;
-    for (let i = 0; i < 2e9; i++) { 
+    for (let i = 0; i < 1e8; i++) { 
         count += i;
     }
     globalEventCount += 1; // Unsafe modification (simplified)
