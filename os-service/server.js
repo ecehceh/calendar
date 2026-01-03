@@ -1,74 +1,76 @@
 const express = require('express');
+const client = require('prom-client'); // Pastikan library ini ada
 const { Worker } = require('worker_threads');
-const client = require('prom-client');
 const app = express();
 
-// --- LO 3: Monitoring Setup ---
-const register = new client.Registry();
-client.collectDefaultMetrics({ register });
+// --- 1. SETUP PROMETHEUS METRICS (Sesuai Soal) ---
 
-const requestCounter = new client.Counter({
-    name: 'calendar_requests_total',
-    help: 'Total requests',
-    labelNames: ['method', 'version']
+// A. CPU & Memory Utilization (Otomatis)
+client.collectDefaultMetrics(); 
+
+// B. Response Time Latency (Histogram)
+const httpRequestDuration = new client.Histogram({
+    name: 'http_request_duration_seconds',
+    help: 'Duration of HTTP requests in seconds',
+    labelNames: ['method', 'route', 'code'], // Label untuk filter
+    buckets: [0.1, 0.5, 1, 2, 5] // Buckets waktu
 });
-register.registerMetric(requestCounter);
 
-// Shared Resource Simulation (untuk analisis Race Condition)
-let globalEventCount = 0; 
+// C. Requests per Second & Error Rate (Counter)
+const httpRequestCounter = new client.Counter({
+    name: 'http_requests_total',
+    help: 'Total number of HTTP requests',
+    labelNames: ['method', 'route', 'code'] // PENTING: Label 'code' untuk hitung Error Rate
+});
 
-// --- LO 2: Version A (Blocking / Single Thread) ---
-// Ini akan membuat server "hang" dan tidak bisa menerima request lain selama proses
+// --- 2. ROUTE HANDLERS ---
+
+// Endpoint Metrics
+app.get('/metrics', async (req, res) => {
+    res.set('Content-Type', client.register.contentType);
+    res.end(await client.register.metrics());
+});
+
+// Version A: Synchronous (Blocking)
 app.get('/api/v1/analyze-sync', (req, res) => {
-    requestCounter.inc({ method: 'GET', version: 'A' });
+    // Mulai Timer Latency
+    const end = httpRequestDuration.startTimer(); 
     
     const start = Date.now();
-    
-    // CPU Bound task dilakukan langsung di Main Thread (Event Loop)
     let count = 0;
-    for (let i = 0; i < 1e8; i++) { 
-        count += i;
-    }
-    globalEventCount += 1; // Unsafe modification (simplified)
-    
-    res.json({ 
-        version: 'A (Blocking)', 
-        result: count, 
-        time: Date.now() - start,
-        total_processed: globalEventCount 
-    });
+    // Simulasi CPU Bound
+    for (let i = 0; i < 1e8; i++) { count += i; }
+
+    // Rekam Metrik (Sukses = 200)
+    end({ route: '/api/v1/analyze-sync', code: 200, method: 'GET' });
+    httpRequestCounter.inc({ route: '/api/v1/analyze-sync', code: 200, method: 'GET' });
+
+    res.json({ version: 'A (Blocking)', result: count, time: Date.now() - start });
 });
 
-// --- LO 2: Version B (Non-Blocking / Multi-threaded) ---
-// Menggunakan Worker Threads untuk offload tugas berat
+// Version B: Asynchronous (Non-Blocking / Worker)
 app.get('/api/v1/analyze-async', (req, res) => {
-    requestCounter.inc({ method: 'GET', version: 'B' });
-    const start = Date.now();
+    const end = httpRequestDuration.startTimer(); // Mulai Timer
 
-    // Spawn thread baru (OS Thread)
     const worker = new Worker('./worker.js');
 
     worker.on('message', (data) => {
-        globalEventCount += 1; // Masih di main thread, jadi aman di JS (karena single threaded event loop callback)
-        res.json({ 
-            version: 'B (Worker Thread)', 
-            result: data, 
-            time: Date.now() - start,
-            total_processed: globalEventCount 
-        });
+        // Rekam Metrik saat selesai (Sukses = 200)
+        end({ route: '/api/v1/analyze-async', code: 200, method: 'GET' });
+        httpRequestCounter.inc({ route: '/api/v1/analyze-async', code: 200, method: 'GET' });
+
+        res.json({ version: 'B (Async)', result: data });
     });
 
     worker.on('error', (err) => {
-        res.status(500).send(err.message);
+        // Rekam Metrik Error (Error = 500) -> Ini untuk poin Error Rate
+        end({ route: '/api/v1/analyze-async', code: 500, method: 'GET' });
+        httpRequestCounter.inc({ route: '/api/v1/analyze-async', code: 500, method: 'GET' });
+        
+        res.status(500).json({ error: err.message });
     });
 });
 
-// Metrics Endpoint untuk Prometheus
-app.get('/metrics', async (req, res) => {
-    res.set('Content-Type', register.contentType);
-    res.end(await register.metrics());
-});
-
 app.listen(3000, () => {
-    console.log('Calendar OS Service running on port 3000');
+    console.log('Server running on port 3000');
 });
